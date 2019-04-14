@@ -39,4 +39,3 @@ This is a simple test program for experimenting with and verifying power managem
    |   JP6-2  |  +VDD  |     RED     |
 
 5. Launch OTII software and set power to 3.3V, 200 mA limit.
-

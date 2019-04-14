@@ -30,6 +30,8 @@ Author:
 
 using namespace McciCatena;
 
+constexpr uint8_t kFramPowerOn = D10;
+
 /****************************************************************************\
 |
 |       Read-only data.
@@ -101,9 +103,6 @@ Returns:
 
 void setup(void)
         {
-        gCatena.begin();
-
-        delay(5000);
         setup_platform();
 
         /* add our application-specific commands */
@@ -122,6 +121,12 @@ void setup(void)
 // set up the platform, print hello, etc.
 void setup_platform()
         {
+        pinMode(kFramPowerOn, OUTPUT);
+        digitalWrite(kFramPowerOn, 1);
+
+        gCatena.begin();
+
+        delay(5000);
         // if running unattended, don't wait for USB connect.
         if (!(gCatena.GetOperatingFlags() &
                 static_cast<uint32_t>(gCatena.OPERATING_FLAGS::fUnattended)))
