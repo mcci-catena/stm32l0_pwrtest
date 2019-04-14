@@ -2,6 +2,12 @@
 
 This is a simple test program for experimenting with and verifying power management on STM32L0 boards.
 
+## Building
+
+This program requires the [Catena-Arduino-Platform](https://github.com/mcci-catena/Catena-Arduino-Platform) (and the associated libraries).
+
+It's easier to do testing on the Catena 4810.
+
 ## Setup with 4801
 
 1. Attach an ST-LINK-2 to the SWD pins of the 4801 using jumpers.
