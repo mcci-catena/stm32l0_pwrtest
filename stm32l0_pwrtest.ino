@@ -19,6 +19,8 @@ Author:
 #include <Catena_CommandStream.h>
 #include <mcciadk_baselib.h>
 
+#include <SPI.h>
+
 // load the fixup.
 #include <Catena_CommandStream_vmicro_fixup.h>
 
@@ -30,7 +32,9 @@ Author:
 
 using namespace McciCatena;
 
+#ifdef ARDUINO_MCCI_CATENA_4801
 constexpr uint8_t kFramPowerOn = D10;
+#endif
 
 /****************************************************************************\
 |
@@ -38,7 +42,7 @@ constexpr uint8_t kFramPowerOn = D10;
 |
 \****************************************************************************/
 
-static const char sVersion[] = "0.1.0";
+static const char sVersion[] = "0.2.0";
 
 /****************************************************************************\
 |
@@ -58,14 +62,15 @@ StatusLed gLed (Catena::PIN_STATUS_LED);
 |
 \****************************************************************************/
 
-cCommandStream::CommandFn cmdReg, cmdSleep, cmdStandby, cmdStop;
+cCommandStream::CommandFn cmdReg, cmdSleep, cmdStandby, cmdStop, cmdWrite;
 
 static const cCommandStream::cEntry sApplicationCommmands[] =
         {
         { "r", cmdReg },
         { "sleep", cmdSleep },
-        { "standby", cmdSleep },
+        { "standby", cmdStandby },
         { "stop", cmdStop },
+        { "w", cmdWrite },
         // other commands go here....
         };
 
@@ -121,8 +126,10 @@ void setup(void)
 // set up the platform, print hello, etc.
 void setup_platform()
         {
+#ifdef ARDUINO_MCCI_CATENA_4801
         pinMode(kFramPowerOn, OUTPUT);
         digitalWrite(kFramPowerOn, 1);
+#endif
 
         gCatena.begin();
 
@@ -249,7 +256,75 @@ cCommandStream::CommandStatus cmdReg(
         return status;
         }
 
+// argv[0] is "w"
+// argv[1] is address to write
+// argv[2..n-1] are values to write
+
+/* process "w base v1 [v2 ...]" -- write words of memory starting at base */
+cCommandStream::CommandStatus cmdWrite(
+        cCommandStream *pThis,
+        void *pContext,
+        int argc,
+        char **argv
+        )
+        {
+        uint32_t uBase;
+        cCommandStream::CommandStatus status;
+
+        if (argc < 3)
+                return cCommandStream::CommandStatus::kInvalidParameter;
+
+        // get arg 1 as base; default is irrelevant
+        status = cCommandStream::getuint32(argc, argv, 1, 16, uBase, 0);
+
+        if (status != cCommandStream::CommandStatus::kSuccess)
+                return status;
+
+        if (uBase % 4 != 0)
+                return cCommandStream::CommandStatus::kInvalidParameter;
+
+        // scan all the write paramters, and fail if any is bad
+        for (int iArg = 2; iArg < argc; ++iArg)
+                {
+                uint32_t dummy;
+
+                // get next arg; default is irrelevant
+                status = cCommandStream::getuint32(argc, argv, 2, 16, dummy, 0);
+
+                if (status != cCommandStream::CommandStatus::kSuccess)
+                        return status;
+                }
+
+        // disable interrupts, saving state.
+        uint32_t const flags = __get_PRIMASK();
+        __disable_irq();
+
+        // write values
+        auto p = reinterpret_cast<volatile uint32_t *>(uBase);
+
+        for (int iArg = 2; iArg < argc; ++iArg)
+                {
+                uint32_t value;
+
+                // get next arg; default is irrelevant
+                status = cCommandStream::getuint32(argc, argv, 2, 16, value, 0);
+
+                // can't happen, but it's ok to be safe.
+                if (status != cCommandStream::CommandStatus::kSuccess)
+                        break;
+
+                *p++ = value;
+                }
+
+        // restore interrupt state (if was enabled)
+        __set_PRIMASK(flags);
+
+        // return status of last fetch
+        return status;
+        }
+
 // argv[0] is "sleep"
+// argv[1] is the sleep delay
 /* process "sleep"  */
 cCommandStream::CommandStatus cmdSleep(
         cCommandStream *pThis,
@@ -258,10 +333,34 @@ cCommandStream::CommandStatus cmdSleep(
         char **argv
         )
         {
-        if (argc > 1)
+        if (argc > 2)
                 return cCommandStream::CommandStatus::kInvalidParameter;
 
-        pThis->printf("%s not implemented yet\n", argv[0]);
+        // get arg 1 as sleep interval, default is 5 seconds.
+        cCommandStream::CommandStatus status;
+        uint32_t sleepInterval;
+        status = cCommandStream::getuint32(argc, argv, 1, /* base */ 0, sleepInterval, 5);
+
+        if (status != cCommandStream::CommandStatus::kSuccess)
+                return status;
+
+        pThis->printf("%s for %u seconds\n", argv[0], sleepInterval);
+        delay(2000);
+
+        LedPattern const save_led = gLed.Set(LedPattern::Off);
+        Serial.end();
+        Wire.end();
+        SPI.end();
+
+        gCatena.Sleep(sleepInterval);
+
+        Serial.begin();
+        Wire.begin();
+        SPI.begin();
+
+        gLed.Set(save_led);
+        pThis->printf("awake again\n");
+        return status;
         }
 
 // argv[0] is "standby"
@@ -277,6 +376,7 @@ cCommandStream::CommandStatus cmdStandby(
                 return cCommandStream::CommandStatus::kInvalidParameter;
 
         pThis->printf("%s not implemented yet\n", argv[0]);
+        return cCommandStream::CommandStatus::kSuccess;
         }
 
 // argv[0] is "stop"
@@ -292,4 +392,5 @@ cCommandStream::CommandStatus cmdStop(
                 return cCommandStream::CommandStatus::kInvalidParameter;
 
         pThis->printf("%s not implemented yet\n", argv[0]);
+        return cCommandStream::CommandStatus::kSuccess;
         }
