@@ -242,7 +242,7 @@ cCommandStream::CommandStatus cmdReg(
         uint32_t uBase;
         cCommandStream::CommandStatus status;
 
-        if (argc < 2)
+        if (! (2 <= argc && argc <= 3))
                 return cCommandStream::CommandStatus::kInvalidParameter;
 
         // get arg 2 as length; default is 32 bytes
@@ -256,6 +256,9 @@ cCommandStream::CommandStatus cmdReg(
 
         if (status != cCommandStream::CommandStatus::kSuccess)
                 return status;
+
+        if (uBase % 4 != 0)
+                return cCommandStream::CommandStatus::kInvalidParameter;
 
         // dump the registers
         uint32_t buffer[8];
@@ -279,7 +282,7 @@ cCommandStream::CommandStatus cmdReg(
 
                 unsigned iLine;
 
-                iLine = McciAdkLib_Snprintf(line, sizeof(line), 0, "%08x:", uBase);
+                iLine = McciAdkLib_Snprintf(line, sizeof(line), 0, "%08x:", uBase + here);
                 for (auto i = 0u; i < n; ++i)
                         {
                         iLine += McciAdkLib_Snprintf(line, sizeof(line), iLine, " %08x", buffer[i]);
@@ -323,7 +326,7 @@ cCommandStream::CommandStatus cmdWrite(
                 uint32_t dummy;
 
                 // get next arg; default is irrelevant
-                status = cCommandStream::getuint32(argc, argv, 2, 16, dummy, 0);
+                status = cCommandStream::getuint32(argc, argv, iArg, 16, dummy, 0);
 
                 if (status != cCommandStream::CommandStatus::kSuccess)
                         return status;
@@ -341,7 +344,7 @@ cCommandStream::CommandStatus cmdWrite(
                 uint32_t value;
 
                 // get next arg; default is irrelevant
-                status = cCommandStream::getuint32(argc, argv, 2, 16, value, 0);
+                status = cCommandStream::getuint32(argc, argv, iArg, 16, value, 0);
 
                 // can't happen, but it's ok to be safe.
                 if (status != cCommandStream::CommandStatus::kSuccess)
@@ -386,7 +389,16 @@ cCommandStream::CommandStatus cmdSleep(
         Wire.end();
         SPI.end();
 
+#ifdef ARDUINO_MCCI_CATENA_4801
+        pinMode(kFramPowerOn, INPUT);
+#endif
+
         gCatena.Sleep(sleepInterval);
+
+#ifdef ARDUINO_MCCI_CATENA_4801
+        pinMode(kFramPowerOn, OUTPUT);
+        digitalWrite(kFramPowerOn, 1);
+#endif
 
         Serial.begin();
         Wire.begin();
