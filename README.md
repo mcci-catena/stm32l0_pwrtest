@@ -2,11 +2,32 @@
 
 This is a simple test program for experimenting with and verifying power management on STM32L0 boards.
 
+<!-- TOC depthFrom:2 updateOnSave:true -->
+
+- [Building](#building)
+- [Setup with 4801](#setup-with-4801)
+- [Commands](#commands)
+	- [`help`](#help)
+	- [`r`: read registers](#r-read-registers)
+	- [`sleep`](#sleep)
+	- [`standby`](#standby)
+	- [`stop`](#stop)
+	- [`w`: write registers](#w-write-registers)
+- [System commands](#system-commands)
+	- [`cpuid`](#cpuid)
+	- [`echo`](#echo)
+	- [`fram dump`](#fram-dump)
+	- [`fram reset`](#fram-reset)
+	- [`system configure`](#system-configure)
+	- [`system reset`](#system-reset)
+
+<!-- /TOC -->
+
 ## Building
 
 This program requires the [Catena-Arduino-Platform](https://github.com/mcci-catena/Catena-Arduino-Platform) (and the associated libraries).
 
-It's easier to do testing on the Catena 4810.
+It's easier to do testing on the Catena 4801.
 
 ## Setup with 4801
 
@@ -45,3 +66,61 @@ It's easier to do testing on the Catena 4810.
    |   JP6-2  |  +VDD  |     RED     |
 
 5. Launch OTII software and set power to 3.3V, 200 mA limit.
+
+## Commands
+
+### `help`
+
+Displays a terse list of commands.
+
+### `r`: read registers
+
+Read and display one or more registers. The first argument is the base register address. If there's no second argument, then only one 32-bit word is read and displayed. Othersise, the second argument is the number of words to read and display.
+
+Both base and length are given in hexadecimal.
+
+### `sleep`
+
+This command uses the `CatenaRTC::Sleep()` method to suspend the system. If an argument is provided, it gives the sleep time in seconds. Otherwise, the system sleeps for 5 seconds.  The delay is given in decimal.
+
+### `standby`
+
+Not implemented.
+
+### `stop`
+
+Not implemented.
+
+### `w`: write registers
+
+Write values to successive registers. The first argument is the base address, which must be 32-bit aligned. Subsequent arguments are taken as the 32-bit values to be written.
+
+Both base and the values are given in hexadecimal.
+
+## System commands
+
+These commands are supplied by the framework
+
+### `cpuid`
+
+Read and display the CPU ID.
+
+### `echo`
+
+Print the arguments to the consoles.
+
+### `fram dump`
+
+Dump FRAM.  The first argument is the base, the second (if given) is the number of bytes to display. Both are given in hexadecimal.
+
+### `fram reset`
+
+If given with no arguments, the FRAM is reset in a non-desctructive way. If written as `fram reset hard`, the FRAM is reinitialized by re-writing the header.
+
+### `system configure`
+
+Set one of several system configuration parameters: `syseui`, `operatingflags`, or `platformguid`.
+
+### `system reset`
+
+Reset the system.
