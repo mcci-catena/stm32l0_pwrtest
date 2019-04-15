@@ -15,8 +15,10 @@ Author:
 
 #include <Catena.h>
 
-#include <Catena_Led.h>
 #include <Catena_CommandStream.h>
+#include <Catena_Led.h>
+#include <Catena_Mx25v8035f.h>
+
 #include <mcciadk_baselib.h>
 
 #include <SPI.h>
@@ -42,7 +44,7 @@ constexpr uint8_t kFramPowerOn = D10;
 |
 \****************************************************************************/
 
-static const char sVersion[] = "0.2.0";
+static const char sVersion[] = "0.2.4";
 
 /****************************************************************************\
 |
@@ -55,6 +57,18 @@ Catena gCatena;
 
 // the LED instance object
 StatusLed gLed (Catena::PIN_STATUS_LED);
+
+// the second SPI bus, for use by flash
+SPIClass gSPI2(
+                Catena::PIN_SPI2_MOSI,
+                Catena::PIN_SPI2_MISO,
+                Catena::PIN_SPI2_SCK
+                );
+
+// The flash
+Catena_Mx25v8035f gFlash;
+bool gfFlash;
+
 
 /****************************************************************************\
 |
@@ -152,10 +166,30 @@ void setup_platform()
         gCatena.SafePrintf("--------------------------------------------------------------------------------\n");
         gCatena.SafePrintf("\n");
 
+        // set up flash
+        setup_flash();
+
         // set up the LED
         gLed.begin();
         gCatena.registerObject(&gLed);
         gLed.Set(LedPattern::OneThirtySecond);
+        }
+
+void setup_flash(void)
+        {
+        if (gFlash.begin(&gSPI2, Catena::PIN_SPI2_FLASH_SS))
+                {
+                gfFlash = true;
+                gFlash.powerDown();
+                // gCatena.SafePrintf("FLASH found, put power down\n");
+                }
+        else
+                {
+                gfFlash = false;
+                gFlash.end();
+                gSPI2.end();
+                gCatena.SafePrintf("No FLASH found: check hardware\n");
+                }
         }
 
 /*
