@@ -36,6 +36,8 @@ using namespace McciCatena;
 
 #ifdef ARDUINO_MCCI_CATENA_4801
 constexpr uint8_t kFramPowerOn = D10;
+constexpr uint8_t kRs485PowerOn = D11;
+constexpr uint8_t kBoosterPowerOn = D5;
 #endif
 
 /****************************************************************************\
@@ -54,6 +56,13 @@ static const char sVersion[] = "0.2.4";
 
 // the Catena instance
 Catena gCatena;
+
+//
+// the LoRaWAN backhaul.  Note that we use the
+// Catena version so it can provide hardware-specific
+// information to the base class.
+//
+Catena::LoRaWAN gLoRaWAN;
 
 // the LED instance object
 StatusLed gLed (Catena::PIN_STATUS_LED);
@@ -143,9 +152,14 @@ void setup_platform()
 #ifdef ARDUINO_MCCI_CATENA_4801
         pinMode(kFramPowerOn, OUTPUT);
         digitalWrite(kFramPowerOn, 1);
+        pinMode(kRs485PowerOn, OUTPUT);
+        digitalWrite(kRs485PowerOn, 1);
+        pinMode(kBoosterPowerOn, OUTPUT);
+        digitalWrite(kBoosterPowerOn, 0);
 #endif
 
         gCatena.begin();
+        gLoRaWAN.begin(&gCatena);
 
         delay(5000);
         // if running unattended, don't wait for USB connect.
@@ -388,9 +402,13 @@ cCommandStream::CommandStatus cmdSleep(
         Serial.end();
         Wire.end();
         SPI.end();
+        if (gfFlash)
+        	gSPI2.end();
 
 #ifdef ARDUINO_MCCI_CATENA_4801
         pinMode(kFramPowerOn, INPUT);
+        pinMode(kRs485PowerOn, INPUT);
+        pinMode(kBoosterPowerOn, INPUT);
 #endif
 
         gCatena.Sleep(sleepInterval);
@@ -398,11 +416,17 @@ cCommandStream::CommandStatus cmdSleep(
 #ifdef ARDUINO_MCCI_CATENA_4801
         pinMode(kFramPowerOn, OUTPUT);
         digitalWrite(kFramPowerOn, 1);
+        pinMode(kRs485PowerOn, OUTPUT);
+        digitalWrite(kRs485PowerOn, 1);
+        pinMode(kBoosterPowerOn, OUTPUT);
+        digitalWrite(kBoosterPowerOn, 0);
 #endif
 
         Serial.begin();
         Wire.begin();
         SPI.begin();
+        if (gfFlash)
+        	gSPI2.begin();
 
         gLed.Set(save_led);
         pThis->printf("awake again\n");
