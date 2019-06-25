@@ -18,6 +18,8 @@ Author:
 #include <Catena_CommandStream.h>
 #include <Catena_Led.h>
 #include <Catena_Mx25v8035f.h>
+#include <Catena_Si1133.h>
+#include <Adafruit_BME280.h>
 
 #include <mcciadk_baselib.h>
 
@@ -56,6 +58,14 @@ static const char sVersion[] = "0.2.5";
 
 // the Catena instance
 Catena gCatena;
+
+// the temperature/humidity sensor
+Adafruit_BME280 gBME280; // The default initalizer creates an I2C connection
+bool fBme;
+
+// the LUX sensor
+Catena_Si1133 gSi1133;
+bool fLight;
 
 //
 // the LoRaWAN backhaul.  Note that we use the
@@ -183,6 +193,14 @@ void setup_platform()
         // set up flash
         setup_flash();
 
+#ifdef ARDUINO_MCCI_CATENA_4610
+        //setup si1133
+        setup_light();
+
+        //setup BME280
+        setup_bme280();
+#endif
+
         // set up the LED
         gLed.begin();
         gCatena.registerObject(&gLed);
@@ -203,6 +221,36 @@ void setup_flash(void)
                 gFlash.end();
                 gSPI2.end();
                 gCatena.SafePrintf("No FLASH found: check hardware\n");
+                }
+        }
+
+ void setup_light(void)
+        {
+        if (gSi1133.begin())
+                {
+                fLight = true;
+                gSi1133.configure(0, CATENA_SI1133_MODE_SmallIR);
+                gSi1133.configure(1, CATENA_SI1133_MODE_White);
+                gSi1133.configure(2, CATENA_SI1133_MODE_UV);
+                gSi1133.stop();
+                }
+        else
+                {
+                fLight = false;
+                gCatena.SafePrintf("No Si1133 found: check hardware\n");
+                }
+        }
+
+ void setup_bme280(void)
+        {
+        if (gBME280.begin(BME280_ADDRESS, Adafruit_BME280::OPERATING_MODE::Sleep))
+                {
+                fBme = true;
+                }
+        else
+                {
+                fBme = false;
+                gCatena.SafePrintf("No BME280 found: check wiring\n");
                 }
         }
 
