@@ -193,7 +193,8 @@ void setup_platform()
         // set up flash
         setup_flash();
 
-#ifdef ARDUINO_MCCI_CATENA_4610
+#ifdef ARDUINO_MCCI_CATENA_4610 || ARDUINO_MCCI_CATENA_4611 || \
+	\ ARDUINO_MCCI_CATENA_4612
         //setup si1133
         setup_light();
 
