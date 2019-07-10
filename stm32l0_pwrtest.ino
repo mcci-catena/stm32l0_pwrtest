@@ -36,6 +36,10 @@ Author:
 
 using namespace McciCatena;
 
+#ifdef ARDUINO_MCCI_CATENA_4612
+constexpr uint8_t kBoosterPowerOn = D14;
+#endif
+
 #ifdef ARDUINO_MCCI_CATENA_4801
 constexpr uint8_t kFramPowerOn = D10;
 constexpr uint8_t kRs485PowerOn = D11;
@@ -48,7 +52,7 @@ constexpr uint8_t kBoosterPowerOn = D5;
 |
 \****************************************************************************/
 
-static const char sVersion[] = "0.2.5";
+static const char sVersion[] = "0.3.0";
 
 /****************************************************************************\
 |
@@ -187,6 +191,24 @@ void setup_platform()
         gCatena.SafePrintf("The program will now idle waiting for you to enter commands\n");
         gCatena.SafePrintf("Enter 'help' for a list of commands.\n");
         gCatena.SafePrintf("(remember to select 'Line Ending: Newline' at the bottom of the monitor window.)\n");
+        
+#ifdef CATENA_CFG_SYSCLK
+        gCatena.SafePrintf("SYSCLK: %d MHz\n", CATENA_CFG_SYSCLK);
+#endif
+
+#ifdef USBCON
+        gCatena.SafePrintf("USB enabled\n");
+#else
+        gCatena.SafePrintf("USB disabled\n");
+#endif
+
+        Catena::UniqueID_string_t CpuIDstring;
+
+        gCatena.SafePrintf(
+                "CPU Unique ID: %s\n",
+                gCatena.GetUniqueIDstring(&CpuIDstring)
+                );
+
         gCatena.SafePrintf("--------------------------------------------------------------------------------\n");
         gCatena.SafePrintf("\n");
 
@@ -454,6 +476,10 @@ cCommandStream::CommandStatus cmdSleep(
         if (gfFlash)
         	gSPI2.end();
 
+#ifdef ARDUINO_MCCI_CATENA_4612
+        pinMode(kBoosterPowerOn, INPUT);
+#endif
+
 #ifdef ARDUINO_MCCI_CATENA_4801
         pinMode(kFramPowerOn, INPUT);
         pinMode(kRs485PowerOn, INPUT);
@@ -461,6 +487,11 @@ cCommandStream::CommandStatus cmdSleep(
 #endif
 
         gCatena.Sleep(sleepInterval);
+
+#ifdef ARDUINO_MCCI_CATENA_4612
+        pinMode(kBoosterPowerOn, OUTPUT);
+        digitalWrite(kBoosterPowerOn, 0);
+#endif
 
 #ifdef ARDUINO_MCCI_CATENA_4801
         pinMode(kFramPowerOn, OUTPUT);
