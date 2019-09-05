@@ -20,6 +20,9 @@ This is a simple test program for experimenting with and verifying power managem
 	- [`fram reset`](#fram-reset)
 	- [`system configure`](#system-configure)
 	- [`system reset`](#system-reset)
+- [Sleep power consumption](#sleep-power-consumption)
+	- [Catena 4612](#catena-4612)
+	- [Catena 4801](#catena-4801)
 
 <!-- /TOC -->
 
@@ -124,3 +127,19 @@ Set one of several system configuration parameters: `syseui`, `operatingflags`, 
 ### `system reset`
 
 Reset the system.
+
+## Sleep power consumption
+
+On uploading this power test sketch, we measured the sleep power of Catena 4612 and 4801 using OTII tool.
+
+### Catena 4612
+
+The average sleep power of Catena 4612 is **~23 uA**. The below graph shows the sleep power with minimum, maximum and average values.
+
+![Catena 4612 Sleep power](assets/catena4612-power-consumption.png).
+
+### Catena 4801
+
+The average sleep power of Catena 4801 is **~7 uA**. The below graph shows the sleep power with minimum, maximum and average values.
+
+![Catena 4801 Sleep power](assets/catena4801-power-consumption.png).
