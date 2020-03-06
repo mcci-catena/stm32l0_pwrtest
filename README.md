@@ -22,10 +22,9 @@ This is a simple test program for experimenting with and verifying power managem
 	- [`system reset`](#system-reset)
 - [Sleep power consumption](#sleep-power-consumption)
 	- [Catena 4801](#catena-4801)
-	- [Catena 4618-M201](#catena-4618-m201)
-	- [Catena 4618](#catena-4618)
 	- [Catena 4612](#catena-4612)
-	- [Catena 4610](#catena-4610)
+	- [Catena 4618](#catena-4618)
+	- [Catena 4618-M201](#catena-4618-m201)
 
 <!-- /TOC -->
 
@@ -133,7 +132,7 @@ Reset the system.
 
 ## Sleep power consumption
 
-On uploading this power test sketch, we measured the sleep power of Catena 4801, 4618-M201, 4618, 4612 and 4610 using OTII tool.
+On uploading this power test sketch, we measured the sleep power of Catena 4801, 4618-M201, 4618, 4612 using OTII tool.
 
 ### Catena 4801
 
@@ -141,11 +140,11 @@ The average sleep power of Catena 4801 is **~6 uA**. The below graph shows the s
 
 ![Catena 4801 Sleep power](assets/catena4801-power-consumption.png)
 
-### Catena 4618-M201
+### Catena 4612
 
-The average sleep power of Catena 4618-M201 is **~22 uA**. The below graph shows the sleep power with minimum, maximum and average values.
+The average sleep power of Catena 4612 is **~17 uA**. The below graph shows the sleep power with minimum, maximum and average values.
 
-![Catena 4618-M201 Sleep power](assets/catena4618m201-power-consumption.png)
+![Catena 4612 Sleep power](assets/catena4612-power-consumption.png)
 
 ### Catena 4618
 
@@ -153,14 +152,8 @@ The average sleep power of Catena 4618 is **~20 uA**. The below graph shows the 
 
 ![Catena 4618 Sleep power](assets/catena4618-power-consumption.png)
 
-### Catena 4612
+### Catena 4618-M201
 
-The average sleep power of Catena 4612 is **~17 uA**. The below graph shows the sleep power with minimum, maximum and average values.
+The average sleep power of Catena 4618-M201 is **~22 uA**. The below graph shows the sleep power with minimum, maximum and average values.
 
-![Catena 4612 Sleep power](assets/catena4612-power-consumption.png)
-
-### Catena 4610
-
-The average sleep power of Catena 4610 is **~182 uA**. The below graph shows the sleep power with minimum, maximum and average values.
-
-![Catena 4610 Sleep power](assets/catena4610-power-consumption.png)
+![Catena 4618-M201 Sleep power](assets/catena4618m201-power-consumption.png)
