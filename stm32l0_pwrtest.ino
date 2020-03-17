@@ -18,7 +18,6 @@ Author:
 #include <Catena_CommandStream.h>
 #include <Catena_Led.h>
 #include <Catena_Mx25v8035f.h>
-#include <Catena_Si1133.h>
 #include <mcciadk_baselib.h>
 
 #include <SPI.h>
@@ -29,9 +28,11 @@ Author:
 using namespace McciCatena;
 
 #if defined(ARDUINO_MCCI_CATENA_4618)
+#include <Catena_Si1133.h>
 #include <Catena-SHT3x.h>
   using namespace McciCatenaSht3x;
-#else
+#elif defined(ARDUINO_MCCI_CATENA_4610) || defined(ARDUINO_MCCI_CATENA_4611) || defined(ARDUINO_MCCI_CATENA_4612)
+#include <Catena_Si1133.h>
 #include <Adafruit_BME280.h>
 #endif
 
@@ -68,15 +69,21 @@ static const char sVersion[] = "0.3.0";
 // the Catena instance
 Catena gCatena;
 
+#ifdef ARDUINO_MCCI_CATENA_4610 || ARDUINO_MCCI_CATENA_4611 || \
+  \ ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
 // the LUX sensor
 Catena_Si1133 gSi1133;
 bool fLight;
+#endif
 
 #ifdef ARDUINO_MCCI_CATENA_4618
 //   The temperature/humidity sensor
 cSHT3x gSht3x {Wire};
 bool fSht3x;
-#else
+#endif
+
+#ifdef ARDUINO_MCCI_CATENA_4610 || ARDUINO_MCCI_CATENA_4611 || \
+  \ ARDUINO_MCCI_CATENA_4612 || 
 // the temperature/humidity sensor
 Adafruit_BME280 gBME280; // The default initalizer creates an I2C connection
 bool fBme;
@@ -162,7 +169,7 @@ void setup(void)
         setup_flash();
 
 #ifdef ARDUINO_MCCI_CATENA_4610 || ARDUINO_MCCI_CATENA_4611 || \
-	\ ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618 || ARDUINO_MCCI_CATENA_4630
+	\ ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
         //setup si1133
         setup_light();
   #ifdef ARDUINO_MCCI_CATENA_4618
@@ -263,7 +270,7 @@ void setup_flash(void)
         }
 
 #ifdef ARDUINO_MCCI_CATENA_4610 || ARDUINO_MCCI_CATENA_4611 || \
-  \ ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618 || ARDUINO_MCCI_CATENA_4630
+  \ ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
  void setup_light(void)
         {
         if (gSi1133.begin())
@@ -273,6 +280,7 @@ void setup_flash(void)
                 gSi1133.configure(1, CATENA_SI1133_MODE_White);
                 gSi1133.configure(2, CATENA_SI1133_MODE_UV);
                 gSi1133.stop();
+                gCatena.SafePrintf("Si1133 found\n");
                 }
         else
                 {
