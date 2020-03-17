@@ -18,9 +18,6 @@ Author:
 #include <Catena_CommandStream.h>
 #include <Catena_Led.h>
 #include <Catena_Mx25v8035f.h>
-#include <Catena_Si1133.h>
-#include <Adafruit_BME280.h>
-
 #include <mcciadk_baselib.h>
 
 #include <SPI.h>
@@ -28,15 +25,24 @@ Author:
 // load the fixup.
 #include <Catena_CommandStream_vmicro_fixup.h>
 
+using namespace McciCatena;
+
+#if defined(ARDUINO_MCCI_CATENA_4618)
+#include <Catena_Si1133.h>
+#include <Catena-SHT3x.h>
+  using namespace McciCatenaSht3x;
+#elif defined(ARDUINO_MCCI_CATENA_4610) || defined(ARDUINO_MCCI_CATENA_4611) || defined(ARDUINO_MCCI_CATENA_4612)
+#include <Catena_Si1133.h>
+#include <Adafruit_BME280.h>
+#endif
+
 /****************************************************************************\
 |
 |       Manifest constants & typedefs.
 |
 \****************************************************************************/
 
-using namespace McciCatena;
-
-#ifdef ARDUINO_MCCI_CATENA_4612
+#ifdef ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
 constexpr uint8_t kBoosterPowerOn = D14;
 #endif
 
@@ -63,13 +69,25 @@ static const char sVersion[] = "0.3.0";
 // the Catena instance
 Catena gCatena;
 
-// the temperature/humidity sensor
-Adafruit_BME280 gBME280; // The default initalizer creates an I2C connection
-bool fBme;
-
+#ifdef ARDUINO_MCCI_CATENA_4610 || ARDUINO_MCCI_CATENA_4611 || \
+  \ ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
 // the LUX sensor
 Catena_Si1133 gSi1133;
 bool fLight;
+#endif
+
+#ifdef ARDUINO_MCCI_CATENA_4618
+//   The temperature/humidity sensor
+cSHT3x gSht3x {Wire};
+bool fSht3x;
+#endif
+
+#ifdef ARDUINO_MCCI_CATENA_4610 || ARDUINO_MCCI_CATENA_4611 || \
+  \ ARDUINO_MCCI_CATENA_4612 || 
+// the temperature/humidity sensor
+Adafruit_BME280 gBME280; // The default initalizer creates an I2C connection
+bool fBme;
+#endif
 
 //
 // the LoRaWAN backhaul.  Note that we use the
@@ -147,6 +165,22 @@ void setup(void)
         {
         setup_platform();
 
+        // set up flash
+        setup_flash();
+
+#ifdef ARDUINO_MCCI_CATENA_4610 || ARDUINO_MCCI_CATENA_4611 || \
+	\ ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
+        //setup si1133
+        setup_light();
+  #ifdef ARDUINO_MCCI_CATENA_4618
+        //setup SHT3X
+        setup_sht3x();
+  #else        
+        //setup BME280
+        setup_bme280();
+  #endif
+#endif
+
         /* add our application-specific commands */
         gCatena.addCommands(
                 /* name of app dispatch table, passed by reference */
@@ -212,18 +246,6 @@ void setup_platform()
         gCatena.SafePrintf("--------------------------------------------------------------------------------\n");
         gCatena.SafePrintf("\n");
 
-        // set up flash
-        setup_flash();
-
-#ifdef ARDUINO_MCCI_CATENA_4610 || ARDUINO_MCCI_CATENA_4611 || \
-	\ ARDUINO_MCCI_CATENA_4612
-        //setup si1133
-        setup_light();
-
-        //setup BME280
-        setup_bme280();
-#endif
-
         // set up the LED
         gLed.begin();
         gCatena.registerObject(&gLed);
@@ -247,6 +269,8 @@ void setup_flash(void)
                 }
         }
 
+#ifdef ARDUINO_MCCI_CATENA_4610 || ARDUINO_MCCI_CATENA_4611 || \
+  \ ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
  void setup_light(void)
         {
         if (gSi1133.begin())
@@ -256,6 +280,7 @@ void setup_flash(void)
                 gSi1133.configure(1, CATENA_SI1133_MODE_White);
                 gSi1133.configure(2, CATENA_SI1133_MODE_UV);
                 gSi1133.stop();
+                gCatena.SafePrintf("Si1133 found\n");
                 }
         else
                 {
@@ -263,7 +288,20 @@ void setup_flash(void)
                 gCatena.SafePrintf("No Si1133 found: check hardware\n");
                 }
         }
-
+#ifdef ARDUINO_MCCI_CATENA_4618
+void setup_sht3x(void)
+        {
+         if (gSht3x.begin())
+                {
+                fSht3x = true;
+                }
+        else
+                {
+                fSht3x = false;
+                gCatena.SafePrintf("No SHT-3x found: check hardware\n");
+                }
+        }
+#else
  void setup_bme280(void)
         {
         if (gBME280.begin(BME280_ADDRESS, Adafruit_BME280::OPERATING_MODE::Sleep))
@@ -276,7 +314,8 @@ void setup_flash(void)
                 gCatena.SafePrintf("No BME280 found: check wiring\n");
                 }
         }
-
+#endif
+#endif
 /*
 
 Name:	loop()
@@ -476,7 +515,7 @@ cCommandStream::CommandStatus cmdSleep(
         if (gfFlash)
         	gSPI2.end();
 
-#ifdef ARDUINO_MCCI_CATENA_4612
+#ifdef ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
         pinMode(kBoosterPowerOn, INPUT);
 #endif
 
@@ -488,7 +527,7 @@ cCommandStream::CommandStatus cmdSleep(
 
         gCatena.Sleep(sleepInterval);
 
-#ifdef ARDUINO_MCCI_CATENA_4612
+#ifdef ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
         pinMode(kBoosterPowerOn, OUTPUT);
         digitalWrite(kBoosterPowerOn, 0);
 #endif
