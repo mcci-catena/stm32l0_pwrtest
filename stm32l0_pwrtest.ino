@@ -101,14 +101,17 @@ StatusLed gLed (Catena::PIN_STATUS_LED);
 
 // the second SPI bus, for use by flash
 SPIClass gSPI2(
-                Catena::PIN_SPI2_MOSI,
-                Catena::PIN_SPI2_MISO,
-                Catena::PIN_SPI2_SCK
-                );
+        Catena::PIN_SPI2_MOSI,
+        Catena::PIN_SPI2_MISO,
+        Catena::PIN_SPI2_SCK
+        );
 
 // The flash
 Catena_Mx25v8035f gFlash;
 bool gfFlash;
+
+uint32_t sleepInterval;
+uint32_t timeoutCount;
 
 
 /****************************************************************************\
@@ -167,6 +170,8 @@ void setup(void)
 
         // set up flash
         setup_flash();
+
+        // setup_lptim();
 
 #ifdef ARDUINO_MCCI_CATENA_4610 || ARDUINO_MCCI_CATENA_4611 || \
 	\ ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
@@ -316,6 +321,50 @@ void setup_sht3x(void)
         }
 #endif
 #endif
+
+static void setup_lptim(uint32_t msec)
+        {       
+        // enable clock to LPTIM1
+        __HAL_RCC_LPTIM1_CLK_ENABLE();
+        __HAL_RCC_LPTIM1_CLK_SLEEP_ENABLE();
+        auto const pLptim = LPTIM1;
+        
+        // set LPTIM1 clock to LSE clock.
+        __HAL_RCC_LPTIM1_CONFIG(RCC_LPTIM1CLKSOURCE_LSE);
+
+        // disable everything so we can tweak the CFGR
+        pLptim->CR = 0;
+
+        // upcount from selected internal clock (which is LSE)
+        auto rCfg = pLptim->CFGR & ~0x01FEEEDF;
+        rCfg |=  0;
+        pLptim->CFGR = rCfg;
+
+        // enable the counter but don't start it
+        pLptim->CR = LPTIM_CR_ENABLE;
+        delayMicroseconds(100);
+
+        // Clear ICR and ISR registers
+        pLptim->ICR |= 0x3F;
+        pLptim->ISR &= 0x00;
+
+        // set ARR to max value so we can count from 0 to 0xFFFF.
+        // must be done after enabling.
+        timeoutCount = ((32768 * msec) / 1000);
+        pLptim->ARR = timeoutCount;
+
+        // Autoreload match interrupt
+         pLptim->IER |= LPTIM_IER_ARRMIE;
+        
+        NVIC_SetPriority(LPTIM1_IRQn, 1);
+        NVIC_DisableIRQ(LPTIM1_IRQn);
+        
+        // start in continuous mode.
+        pLptim->CR = LPTIM_CR_ENABLE | LPTIM_CR_CNTSTRT;
+
+        NVIC_EnableIRQ(LPTIM1_IRQn);
+        }
+
 /*
 
 Name:	loop()
@@ -497,16 +546,15 @@ cCommandStream::CommandStatus cmdSleep(
         if (argc > 2)
                 return cCommandStream::CommandStatus::kInvalidParameter;
 
-        // get arg 1 as sleep interval, default is 5 seconds.
+        // get arg 1 as sleep interval, default is 1000 milliseconds.
         cCommandStream::CommandStatus status;
-        uint32_t sleepInterval;
-        status = cCommandStream::getuint32(argc, argv, 1, /* base */ 0, sleepInterval, 5);
-
+        status = cCommandStream::getuint32(argc, argv, 1, /* base */ 0, sleepInterval, 1000);
+        
         if (status != cCommandStream::CommandStatus::kSuccess)
                 return status;
 
-        pThis->printf("%s for %u seconds\n", argv[0], sleepInterval);
-        delay(2000);
+        pThis->printf("%s for %u milliseconds\n", argv[0], sleepInterval);
+        delay(20);
 
         LedPattern const save_led = gLed.Set(LedPattern::Off);
         Serial.end();
@@ -523,9 +571,9 @@ cCommandStream::CommandStatus cmdSleep(
         pinMode(kFramPowerOn, INPUT);
         pinMode(kRs485PowerOn, INPUT);
         pinMode(kBoosterPowerOn, INPUT);
-#endif
+#endif 
 
-        gCatena.Sleep(sleepInterval);
+       lptim_sleep(); 
 
 #ifdef ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
         pinMode(kBoosterPowerOn, OUTPUT);
@@ -549,6 +597,7 @@ cCommandStream::CommandStatus cmdSleep(
 
         gLed.Set(save_led);
         pThis->printf("awake again\n");
+        gCatena.SafePrintf("timeout in ARR: %d\n", timeoutCount);
         return status;
         }
 
@@ -583,3 +632,63 @@ cCommandStream::CommandStatus cmdStop(
         pThis->printf("%s not implemented yet\n", argv[0]);
         return cCommandStream::CommandStatus::kSuccess;
         }
+
+void lptim_sleep()
+        {
+        setup_lptim(sleepInterval);
+        HAL_SuspendTick();
+        HAL_PWR_EnterSTOPMode(
+              PWR_LOWPOWERREGULATOR_ON,
+              PWR_STOPENTRY_WFE
+              );
+        HAL_IncTick();
+        HAL_ResumeTick();
+        HAL_AddTick(sleepInterval);
+        }
+
+uint32_t HAL_AddTick(
+       uint32_t delta
+        )
+        {
+        extern __IO uint32_t uwTick;
+        // copy old interrupt-enable state to flags.
+        uint32_t const flags = __get_PRIMASK();
+
+        // disable interrupts
+        __set_PRIMASK(1);
+    
+        // observe uwTick, and advance it.
+        uint32_t const tickCount = uwTick + delta;
+
+        // save uwTick
+        uwTick = tickCount;
+
+        // restore interrupts (does nothing if ints were disabled on entry)
+        __set_PRIMASK(flags);
+
+        // return the new value of uwTick.
+        return tickCount;
+        }
+
+static uint16_t lptimcount_read()
+        {
+        auto const pLptim = LPTIM1;
+        uint32_t v1, v2;
+
+        for (v1 = pLptim->CNT & 0xFFFF; (v2 = pLptim->CNT & 0xFFFF) != v1; v1 = v2);
+
+        return (uint16_t) v1;
+        }
+
+extern "C" {
+void LPTIM1_IRQHandler(void)
+        {
+        NVIC_ClearPendingIRQ(LPTIM1_IRQn);
+        if(LPTIM1->ISR & LPTIM_ISR_ARRM) //If there was a compare match
+                { 
+                LPTIM1->ICR |= LPTIM_ICR_ARRMCF;  //If the interrupt was enabled
+                LPTIM1->ICR |= LPTIM_ICR_CMPOKCF;
+                LPTIM1->CR = 0;
+                }
+        } 
+}
