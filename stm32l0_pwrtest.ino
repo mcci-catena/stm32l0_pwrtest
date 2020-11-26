@@ -34,6 +34,9 @@ using namespace McciCatena;
 #elif defined(ARDUINO_MCCI_CATENA_4610) || defined(ARDUINO_MCCI_CATENA_4611) || defined(ARDUINO_MCCI_CATENA_4612)
 #include <Catena_Si1133.h>
 #include <Adafruit_BME280.h>
+#elif defined(ARDUINO_MCCI_CATENA_4802)
+#include <Catena-SHT3x.h>
+  using namespace McciCatenaSht3x;
 #endif
 
 /****************************************************************************\
@@ -52,13 +55,18 @@ constexpr uint8_t kRs485PowerOn = D11;
 constexpr uint8_t kBoosterPowerOn = D5;
 #endif
 
+#ifdef ARDUINO_MCCI_CATENA_4802
+constexpr uint8_t kFramPowerOn = D10;
+constexpr uint8_t kRs485PowerOn = D11;
+#endif
+
 /****************************************************************************\
 |
 |       Read-only data.
 |
 \****************************************************************************/
 
-static const char sVersion[] = "0.3.0";
+static const char sVersion[] = "0.4.0";
 
 /****************************************************************************\
 |
@@ -76,7 +84,7 @@ Catena_Si1133 gSi1133;
 bool fLight;
 #endif
 
-#ifdef ARDUINO_MCCI_CATENA_4618
+#ifdef ARDUINO_MCCI_CATENA_4618 || ARDUINO_MCCI_CATENA_4802
 //   The temperature/humidity sensor
 cSHT3x gSht3x {Wire};
 bool fSht3x;
@@ -172,7 +180,7 @@ void setup(void)
 	\ ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
         //setup si1133
         setup_light();
-  #ifdef ARDUINO_MCCI_CATENA_4618
+  #ifdef ARDUINO_MCCI_CATENA_4618 || ARDUINO_MCCI_CATENA_4802
         //setup SHT3X
         setup_sht3x();
   #else        
@@ -204,6 +212,13 @@ void setup_platform()
         digitalWrite(kRs485PowerOn, 1);
         pinMode(kBoosterPowerOn, OUTPUT);
         digitalWrite(kBoosterPowerOn, 0);
+#endif
+
+#ifdef ARDUINO_MCCI_CATENA_4802
+        pinMode(kFramPowerOn, OUTPUT);
+        digitalWrite(kFramPowerOn, 1);
+        pinMode(kRs485PowerOn, OUTPUT);
+        digitalWrite(kRs485PowerOn, 1);
 #endif
 
         gCatena.begin();
@@ -288,7 +303,7 @@ void setup_flash(void)
                 gCatena.SafePrintf("No Si1133 found: check hardware\n");
                 }
         }
-#ifdef ARDUINO_MCCI_CATENA_4618
+#ifdef ARDUINO_MCCI_CATENA_4618 || ARDUINO_MCCI_CATENA_4802
 void setup_sht3x(void)
         {
          if (gSht3x.begin())
@@ -525,6 +540,14 @@ cCommandStream::CommandStatus cmdSleep(
         pinMode(kBoosterPowerOn, INPUT);
 #endif
 
+#ifdef ARDUINO_MCCI_CATENA_4802
+        pinMode(D5, INPUT);
+        pinMode(D12, INPUT);
+        pinMode(D34, INPUT);
+        pinMode(kFramPowerOn, INPUT);
+        pinMode(kRs485PowerOn, INPUT);
+#endif
+
         gCatena.Sleep(sleepInterval);
 
 #ifdef ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
@@ -539,6 +562,13 @@ cCommandStream::CommandStatus cmdSleep(
         digitalWrite(kRs485PowerOn, 1);
         pinMode(kBoosterPowerOn, OUTPUT);
         digitalWrite(kBoosterPowerOn, 0);
+#endif
+
+#ifdef ARDUINO_MCCI_CATENA_4802
+        pinMode(kFramPowerOn, OUTPUT);
+        digitalWrite(kFramPowerOn, 1);
+        pinMode(kRs485PowerOn, OUTPUT);
+        digitalWrite(kRs485PowerOn, 1);
 #endif
 
         Serial.begin();
