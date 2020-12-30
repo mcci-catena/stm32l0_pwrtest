@@ -1,6 +1,6 @@
 /*
 
-Name:	stm32l0_pwrtest.ino
+Name:   stm32l0_pwrtest.ino
 
 Function:
         Test bench for power testing.
@@ -9,7 +9,7 @@ Copyright Notice:
         See accompanying LICENSE file.
 
 Author:
-        Terry Moore, MCCI Corporation	April 2019
+        Terry Moore, MCCI Corporation   April 2019
 
 */
 
@@ -56,8 +56,11 @@ constexpr uint8_t kBoosterPowerOn = D5;
 #endif
 
 #ifdef ARDUINO_MCCI_CATENA_4802
-constexpr uint8_t kFramPowerOn = D10;
-constexpr uint8_t kRs485PowerOn = D11;
+constexpr uint8_t kRs485RxEnable = D5;
+constexpr uint8_t kRs485TxEnable = D12;
+constexpr uint8_t kVout1Enable = D10;
+constexpr uint8_t kVout2Enable = D11;
+constexpr uint8_t kExtendedI2cEn = D34;
 #endif
 
 /****************************************************************************\
@@ -121,7 +124,7 @@ bool gfFlash;
 
 /****************************************************************************\
 |
-|	The command table
+|       The command table
 |
 \****************************************************************************/
 
@@ -147,7 +150,7 @@ sApplicationCommandDispatch(
 
 /*
 
-Name:	setup()
+Name:   setup()
 
 Function:
         Arduino setup function.
@@ -177,7 +180,7 @@ void setup(void)
         setup_flash();
 
 #ifdef ARDUINO_MCCI_CATENA_4610 || ARDUINO_MCCI_CATENA_4611 || \
-	\ ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
+        \ ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
         //setup si1133
         setup_light();
   #ifdef ARDUINO_MCCI_CATENA_4618 || ARDUINO_MCCI_CATENA_4802
@@ -215,10 +218,10 @@ void setup_platform()
 #endif
 
 #ifdef ARDUINO_MCCI_CATENA_4802
-        pinMode(kFramPowerOn, OUTPUT);
-        digitalWrite(kFramPowerOn, 1);
-        pinMode(kRs485PowerOn, OUTPUT);
-        digitalWrite(kRs485PowerOn, 1);
+        pinMode(kVout1Enable, OUTPUT);
+        digitalWrite(kVout1Enable, 1);
+        pinMode(kVout2Enable, OUTPUT);
+        digitalWrite(kVout2Enable, 1);
 #endif
 
         gCatena.begin();
@@ -333,7 +336,7 @@ void setup_sht3x(void)
 #endif
 /*
 
-Name:	loop()
+Name:   loop()
 
 Function:
         Arduino polling function.
@@ -361,7 +364,7 @@ void loop()
 
 /****************************************************************************\
 |
-|	The command functions
+|       The command functions
 |
 \****************************************************************************/
 
@@ -528,7 +531,7 @@ cCommandStream::CommandStatus cmdSleep(
         Wire.end();
         SPI.end();
         if (gfFlash)
-        	gSPI2.end();
+                gSPI2.end();
 
 #ifdef ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
         pinMode(kBoosterPowerOn, INPUT);
@@ -541,11 +544,13 @@ cCommandStream::CommandStatus cmdSleep(
 #endif
 
 #ifdef ARDUINO_MCCI_CATENA_4802
-        pinMode(D5, INPUT);
-        pinMode(D12, INPUT);
-        pinMode(D34, INPUT);
-        pinMode(kFramPowerOn, INPUT);
-        pinMode(kRs485PowerOn, INPUT);
+        pinMode(kRs485RxEnable, OUTPUT);
+        digitalWrite(kRs485RxEnable, 1);
+        pinMode(kRs485TxEnable, OUTPUT);
+        digitalWrite(kRs485TxEnable, 0);
+        pinMode(kExtendedI2cEn, INPUT);
+        pinMode(kVout1Enable, INPUT);
+        pinMode(kVout2Enable, INPUT);
 #endif
 
         gCatena.Sleep(sleepInterval);
@@ -565,17 +570,17 @@ cCommandStream::CommandStatus cmdSleep(
 #endif
 
 #ifdef ARDUINO_MCCI_CATENA_4802
-        pinMode(kFramPowerOn, OUTPUT);
-        digitalWrite(kFramPowerOn, 1);
-        pinMode(kRs485PowerOn, OUTPUT);
-        digitalWrite(kRs485PowerOn, 1);
+        pinMode(kVout1Enable, OUTPUT);
+        digitalWrite(kVout1Enable, 1);
+        pinMode(kVout2Enable, OUTPUT);
+        digitalWrite(kVout2Enable, 1);
 #endif
 
         Serial.begin();
         Wire.begin();
         SPI.begin();
         if (gfFlash)
-        	gSPI2.begin();
+                gSPI2.begin();
 
         gLed.Set(save_led);
         pThis->printf("awake again\n");
