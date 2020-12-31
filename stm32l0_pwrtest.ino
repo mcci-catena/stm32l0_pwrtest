@@ -81,7 +81,7 @@ static const char sVersion[] = "0.4.0";
 Catena gCatena;
 
 #ifdef ARDUINO_MCCI_CATENA_4610 || ARDUINO_MCCI_CATENA_4611 || \
-  \ ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
+  ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
 // the LUX sensor
 Catena_Si1133 gSi1133;
 bool fLight;
@@ -94,7 +94,7 @@ bool fSht3x;
 #endif
 
 #ifdef ARDUINO_MCCI_CATENA_4610 || ARDUINO_MCCI_CATENA_4611 || \
-  \ ARDUINO_MCCI_CATENA_4612 || 
+  ARDUINO_MCCI_CATENA_4612
 // the temperature/humidity sensor
 Adafruit_BME280 gBME280; // The default initalizer creates an I2C connection
 bool fBme;
@@ -180,7 +180,7 @@ void setup(void)
         setup_flash();
 
 #ifdef ARDUINO_MCCI_CATENA_4610 || ARDUINO_MCCI_CATENA_4611 || \
-        \ ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
+        ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
         //setup si1133
         setup_light();
   #ifdef ARDUINO_MCCI_CATENA_4618 || ARDUINO_MCCI_CATENA_4802
@@ -288,7 +288,7 @@ void setup_flash(void)
         }
 
 #ifdef ARDUINO_MCCI_CATENA_4610 || ARDUINO_MCCI_CATENA_4611 || \
-  \ ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
+  ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
  void setup_light(void)
         {
         if (gSi1133.begin())
