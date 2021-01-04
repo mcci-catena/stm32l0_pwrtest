@@ -1,6 +1,6 @@
 /*
 
-Name:	stm32l0_pwrtest.ino
+Name:   stm32l0_pwrtest.ino
 
 Function:
         Test bench for power testing.
@@ -9,7 +9,7 @@ Copyright Notice:
         See accompanying LICENSE file.
 
 Author:
-        Terry Moore, MCCI Corporation	April 2019
+        Terry Moore, MCCI Corporation   April 2019
 
 */
 
@@ -34,6 +34,9 @@ using namespace McciCatena;
 #elif defined(ARDUINO_MCCI_CATENA_4610) || defined(ARDUINO_MCCI_CATENA_4611) || defined(ARDUINO_MCCI_CATENA_4612)
 #include <Catena_Si1133.h>
 #include <Adafruit_BME280.h>
+#elif defined(ARDUINO_MCCI_CATENA_4802)
+#include <Catena-SHT3x.h>
+  using namespace McciCatenaSht3x;
 #endif
 
 /****************************************************************************\
@@ -52,13 +55,21 @@ constexpr uint8_t kRs485PowerOn = D11;
 constexpr uint8_t kBoosterPowerOn = D5;
 #endif
 
+#ifdef ARDUINO_MCCI_CATENA_4802
+constexpr uint8_t kRs485RxEnable = D5;
+constexpr uint8_t kRs485TxEnable = D12;
+constexpr uint8_t kVout1Enable = D10;
+constexpr uint8_t kVout2Enable = D11;
+constexpr uint8_t kExtendedI2cEn = D34;
+#endif
+
 /****************************************************************************\
 |
 |       Read-only data.
 |
 \****************************************************************************/
 
-static const char sVersion[] = "0.3.0";
+static const char sVersion[] = "0.4.0";
 
 /****************************************************************************\
 |
@@ -70,20 +81,20 @@ static const char sVersion[] = "0.3.0";
 Catena gCatena;
 
 #ifdef ARDUINO_MCCI_CATENA_4610 || ARDUINO_MCCI_CATENA_4611 || \
-  \ ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
+  ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
 // the LUX sensor
 Catena_Si1133 gSi1133;
 bool fLight;
 #endif
 
-#ifdef ARDUINO_MCCI_CATENA_4618
+#ifdef ARDUINO_MCCI_CATENA_4618 || ARDUINO_MCCI_CATENA_4802
 //   The temperature/humidity sensor
 cSHT3x gSht3x {Wire};
 bool fSht3x;
 #endif
 
 #ifdef ARDUINO_MCCI_CATENA_4610 || ARDUINO_MCCI_CATENA_4611 || \
-  \ ARDUINO_MCCI_CATENA_4612 || 
+  ARDUINO_MCCI_CATENA_4612
 // the temperature/humidity sensor
 Adafruit_BME280 gBME280; // The default initalizer creates an I2C connection
 bool fBme;
@@ -113,7 +124,7 @@ bool gfFlash;
 
 /****************************************************************************\
 |
-|	The command table
+|       The command table
 |
 \****************************************************************************/
 
@@ -139,7 +150,7 @@ sApplicationCommandDispatch(
 
 /*
 
-Name:	setup()
+Name:   setup()
 
 Function:
         Arduino setup function.
@@ -169,10 +180,10 @@ void setup(void)
         setup_flash();
 
 #ifdef ARDUINO_MCCI_CATENA_4610 || ARDUINO_MCCI_CATENA_4611 || \
-	\ ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
+        ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
         //setup si1133
         setup_light();
-  #ifdef ARDUINO_MCCI_CATENA_4618
+  #ifdef ARDUINO_MCCI_CATENA_4618 || ARDUINO_MCCI_CATENA_4802
         //setup SHT3X
         setup_sht3x();
   #else        
@@ -204,6 +215,13 @@ void setup_platform()
         digitalWrite(kRs485PowerOn, 1);
         pinMode(kBoosterPowerOn, OUTPUT);
         digitalWrite(kBoosterPowerOn, 0);
+#endif
+
+#ifdef ARDUINO_MCCI_CATENA_4802
+        pinMode(kVout1Enable, OUTPUT);
+        digitalWrite(kVout1Enable, 1);
+        pinMode(kVout2Enable, OUTPUT);
+        digitalWrite(kVout2Enable, 1);
 #endif
 
         gCatena.begin();
@@ -270,7 +288,7 @@ void setup_flash(void)
         }
 
 #ifdef ARDUINO_MCCI_CATENA_4610 || ARDUINO_MCCI_CATENA_4611 || \
-  \ ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
+  ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
  void setup_light(void)
         {
         if (gSi1133.begin())
@@ -288,7 +306,7 @@ void setup_flash(void)
                 gCatena.SafePrintf("No Si1133 found: check hardware\n");
                 }
         }
-#ifdef ARDUINO_MCCI_CATENA_4618
+#ifdef ARDUINO_MCCI_CATENA_4618 || ARDUINO_MCCI_CATENA_4802
 void setup_sht3x(void)
         {
          if (gSht3x.begin())
@@ -318,7 +336,7 @@ void setup_sht3x(void)
 #endif
 /*
 
-Name:	loop()
+Name:   loop()
 
 Function:
         Arduino polling function.
@@ -346,7 +364,7 @@ void loop()
 
 /****************************************************************************\
 |
-|	The command functions
+|       The command functions
 |
 \****************************************************************************/
 
@@ -513,7 +531,7 @@ cCommandStream::CommandStatus cmdSleep(
         Wire.end();
         SPI.end();
         if (gfFlash)
-        	gSPI2.end();
+                gSPI2.end();
 
 #ifdef ARDUINO_MCCI_CATENA_4612 || ARDUINO_MCCI_CATENA_4618
         pinMode(kBoosterPowerOn, INPUT);
@@ -523,6 +541,16 @@ cCommandStream::CommandStatus cmdSleep(
         pinMode(kFramPowerOn, INPUT);
         pinMode(kRs485PowerOn, INPUT);
         pinMode(kBoosterPowerOn, INPUT);
+#endif
+
+#ifdef ARDUINO_MCCI_CATENA_4802
+        pinMode(kRs485RxEnable, OUTPUT);
+        digitalWrite(kRs485RxEnable, 1);
+        pinMode(kRs485TxEnable, OUTPUT);
+        digitalWrite(kRs485TxEnable, 0);
+        pinMode(kExtendedI2cEn, INPUT);
+        pinMode(kVout1Enable, INPUT);
+        pinMode(kVout2Enable, INPUT);
 #endif
 
         gCatena.Sleep(sleepInterval);
@@ -541,11 +569,18 @@ cCommandStream::CommandStatus cmdSleep(
         digitalWrite(kBoosterPowerOn, 0);
 #endif
 
+#ifdef ARDUINO_MCCI_CATENA_4802
+        pinMode(kVout1Enable, OUTPUT);
+        digitalWrite(kVout1Enable, 1);
+        pinMode(kVout2Enable, OUTPUT);
+        digitalWrite(kVout2Enable, 1);
+#endif
+
         Serial.begin();
         Wire.begin();
         SPI.begin();
         if (gfFlash)
-        	gSPI2.begin();
+                gSPI2.begin();
 
         gLed.Set(save_led);
         pThis->printf("awake again\n");

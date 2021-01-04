@@ -22,6 +22,7 @@ This is a simple test program for experimenting with and verifying power managem
 	- [`system reset`](#system-reset)
 - [Sleep power consumption](#sleep-power-consumption)
 	- [Catena 4801](#catena-4801)
+	- [Catena 4802](#catena-4802)
 	- [Catena 4612](#catena-4612)
 	- [Catena 4618](#catena-4618)
 	- [Catena 4618-M201](#catena-4618-m201)
@@ -139,6 +140,12 @@ On uploading this power test sketch, we measured the sleep power of Catena 4801,
 The average sleep power of Catena 4801 is **~6 uA**. The below graph shows the sleep power with minimum, maximum and average values.
 
 ![Catena 4801 Sleep power](assets/catena4801-power-consumption.png)
+
+### [Catena 4802](https://github.com/mcci-catena/HW-Designs/tree/master/Boards/Catena-4802)
+
+The average sleep power of Catena 4802 is **~16 uA**. The power provided for Catena 4802 is 3.6V. The below graph shows the sleep power with minimum, maximum and average values.
+
+![Catena 4802 Sleep power](assets/catena4802-power-consumption.png)
 
 ### [Catena 4612](https://github.com/mcci-catena/HW-Designs/tree/master/Boards/Catena-4611_4612)
 
