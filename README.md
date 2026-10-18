@@ -43,12 +43,14 @@ It's easier to do testing on the Catena 4801.
    | 4801 Pin |  Label | ST-Link Pin |
    |:--------:|:------:|:-----------:|
    |   JP1-1  |  +VDD  |      1      |
-   |   JP1-2  |   GND  |      3      |
+   |   JP1-2  |   GND  |      4      |
    |   JP1-3  | SWDCLK |      9      |
    |   JP1-4  | SWDIO  |      7      |
    |   JP1-5  |  nRST  |     15      |
 
-   Note that these are almost linear; only 9 and 7 on the ST-Link are swapped.
+   ST-LINK/V2 pin 3 is TRST, not ground. Connect GND to pin 4 (or any even-numbered pin);
+   ST requires at least one of them (UM1075 Rev 10, Table 4). Grounding pin 3 as well is
+   optional: ST recommends it for noise on the ribbon.
 
 2. Attach an Adafruit FT232H USB to TTL serial adapter.
 
